@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>QuickChat</title>
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
   <style>
     * {
       margin: 0;
@@ -19,13 +24,52 @@
       height: 100vh;
       overflow: hidden;
     }
-    #app {
+    #loginScreen {
       width: 100%;
       max-width: 420px;
       height: 100vh;
       max-height: 750px;
       background: #17212b;
       display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border-radius: 12px;
+      padding: 20px;
+    }
+    #loginScreen h2 {
+      color: #fff;
+      margin-bottom: 20px;
+    }
+    #loginScreen input {
+      width: 100%;
+      background: #242f3d;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: #fff;
+      font-size: 16px;
+      outline: none;
+      margin-bottom: 12px;
+    }
+    #loginScreen button {
+      width: 100%;
+      background: #5eb5f7;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    #app {
+      width: 100%;
+      max-width: 420px;
+      height: 100vh;
+      max-height: 750px;
+      background: #17212b;
+      display: none;
       flex-direction: column;
       border-radius: 12px;
       overflow: hidden;
@@ -48,7 +92,6 @@
       color: #5eb5f7;
       font-size: 20px;
       cursor: pointer;
-      display: none;
     }
     #main {
       flex: 1;
@@ -171,6 +214,12 @@
       align-self: flex-end;
       border-bottom-right-radius: 4px;
     }
+    .msg .sender {
+      font-size: 11px;
+      color: #5eb5f7;
+      margin-bottom: 3px;
+      font-weight: 500;
+    }
     .msg .time {
       font-size: 10px;
       color: #7f8c8d;
@@ -212,157 +261,231 @@
       justify-content: center;
       flex-shrink: 0;
     }
-    #inputArea button:active {
-      background: #4a9fd9;
-    }
-    #searchBar {
+    #newChatArea {
+      display: flex;
+      align-items: center;
       padding: 8px 12px;
       background: #17212b;
+      gap: 8px;
+      border-bottom: 1px solid #1f2c38;
     }
-    #searchBar input {
-      width: 100%;
+    #newChatArea input {
+      flex: 1;
       background: #242f3d;
       border: none;
-      border-radius: 10px;
+      border-radius: 20px;
       padding: 8px 14px;
       color: #fff;
-      font-size: 14px;
+      font-size: 13px;
       outline: none;
+    }
+    #newChatArea button {
+      background: #5eb5f7;
+      border: none;
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    #logoutBtn {
+      background: none;
+      border: none;
+      color: #e74c3c;
+      font-size: 14px;
+      cursor: pointer;
+      margin-left: auto;
     }
   </style>
 </head>
 <body>
-  <div id="app">
-    <div id="header">
-      <button class="back-btn" onclick="closeChat()">←</button>
-      <span id="headerTitle">QuickChat</span>
-    </div>
-    <div id="searchBar">
-      <input type="text" placeholder="Поиск чатов..." oninput="filterChats(this.value)">
-    </div>
-    <div id="main">
-      <div id="chatList"></div>
-      <div id="chatWindow">
-        <div id="chatHeader"></div>
-        <div id="messages"></div>
-        <div id="inputArea">
-          <input type="text" id="msgInput" placeholder="Сообщение..." onkeydown="if(event.key==='Enter')sendMessage()">
-          <button onclick="sendMessage()">➤</button>
-        </div>
+
+<!-- Экран входа -->
+<div id="loginScreen">
+  <h2>🚀 QuickChat</h2>
+  <input type="text" id="loginName" placeholder="Твой никнейм...">
+  <button onclick="login()">Войти в чат</button>
+</div>
+
+<!-- Основной интерфейс -->
+<div id="app">
+  <div id="header">
+    <button class="back-btn" onclick="closeChat()">←</button>
+    <span id="headerTitle">QuickChat</span>
+    <button id="logoutBtn" onclick="logout()">Выйти</button>
+  </div>
+  
+  <div id="newChatArea">
+    <input type="text" id="newChatInput" placeholder="Никнейм собеседника...">
+    <button onclick="createChat()">+</button>
+  </div>
+
+  <div id="main">
+    <div id="chatList"></div>
+    <div id="chatWindow">
+      <div id="chatHeader"></div>
+      <div id="messages"></div>
+      <div id="inputArea">
+        <input type="text" id="msgInput" placeholder="Сообщение..." onkeydown="if(event.key==='Enter')sendMessage()">
+        <button onclick="sendMessage()">➤</button>
       </div>
     </div>
   </div>
-  <script>
-    const chats = [
-      { id: 1, name: 'Алексей', initials: 'АЛ', lastMsg: 'Привет, как дела?', time: '12:30', color: '#4a90d9' },
-      { id: 2, name: 'Мария', initials: 'МА', lastMsg: 'Встречаемся завтра?', time: '11:15', color: '#e84393' },
-      { id: 3, name: 'Рабочая группа', initials: 'РГ', lastMsg: 'Дедлайн перенесли', time: '09:45', color: '#00b894' },
-      { id: 4, name: 'Папа', initials: 'ПА', lastMsg: 'Перезвони мне', time: 'Вчера', color: '#f39c12' },
-      { id: 5, name: 'Олег', initials: 'ОЛ', lastMsg: 'Скинь файл', time: 'Вчера', color: '#6c5ce7' },
-      { id: 6, name: 'Анна', initials: 'АН', lastMsg: 'Ок, договорились', time: 'Пн', color: '#fd79a8' },
-    ];
-    const messages = {
-      1: [
-        { text: 'Привет! 👋', outgoing: false, time: '10:00' },
-        { text: 'Привет! Как сам?', outgoing: true, time: '10:01' },
-      ],
-      2: [
-        { text: 'Ты где?', outgoing: false, time: '11:00' },
-        { text: 'Уже еду!', outgoing: true, time: '11:02' },
-      ],
-      3: [
-        { text: 'Кто сделает презентацию?', outgoing: false, time: '09:30' },
-      ],
-      4: [
-        { text: 'Перезвони мне', outgoing: false, time: 'Вчера' },
-      ],
-      5: [
-        { text: 'Скинь файл', outgoing: false, time: 'Вчера' },
-      ],
-      6: [
-        { text: 'Ок, договорились', outgoing: false, time: 'Пн' },
-      ],
-    };
-    let currentChat = null;
-    function renderChatList(filter = '') {
-      const list = document.getElementById('chatList');
-      const filtered = chats.filter(c => c.name.toLowerCase().includes(filter.toLowerCase()));
-      list.innerHTML = filtered.map(c => `
-        <div class="chat-item" onclick="openChat(${c.id})">
-          <div class="avatar" style="background:${c.color}">${c.initials}</div>
-          <div class="chat-info">
-            <div class="chat-name">${c.name}</div>
-            <div class="chat-last">${c.lastMsg}</div>
-          </div>
-          <div class="chat-time">${c.time}</div>
-        </div>
-      `).join('');
-    }
-    function filterChats(query) { renderChatList(query); }
-    function openChat(id) {
-      currentChat = id;
-      const chat = chats.find(c => c.id === id);
-      document.getElementById('chatHeader').innerHTML = `
-        <span style="display:flex;align-items:center;gap:10px">
-          <div class="avatar" style="background:${chat.color};width:36px;height:36px;font-size:14px">${chat.initials}</div>
-          ${chat.name}
-        </span>
-      `;
-      document.getElementById('headerTitle').textContent = chat.name;
-      document.querySelector('.back-btn').style.display = 'block';
-      document.getElementById('chatList').classList.add('show-chat');
-      document.getElementById('chatWindow').classList.add('active');
-      renderMessages();
-      document.getElementById('msgInput').focus();
-    }
-    function closeChat() {
-      currentChat = null;
-      document.getElementById('headerTitle').textContent = 'QuickChat';
-      document.querySelector('.back-btn').style.display = 'none';
-      document.getElementById('chatList').classList.remove('show-chat');
-      document.getElementById('chatWindow').classList.remove('active');
-    }
-    function renderMessages() {
-      const container = document.getElementById('messages');
-      if (!currentChat || !messages[currentChat]) {
-        container.innerHTML = '<div style="color:#5a6a7a;text-align:center;padding:20px">Нет сообщений</div>';
-        return;
-      }
-      container.innerHTML = messages[currentChat].map(m => `
-        <div class="msg ${m.outgoing ? 'outgoing' : 'incoming'}">
-          ${m.text}
-          <div class="time">${m.time}</div>
-        </div>
-      `).join('');
-      container.scrollTop = container.scrollHeight;
-    }
-    function sendMessage() {
-      const input = document.getElementById('msgInput');
-      const text = input.value.trim();
-      if (!text || !currentChat) return;
-      const now = new Date();
-      const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-      if (!messages[currentChat]) messages[currentChat] = [];
-      messages[currentChat].push({ text, outgoing: true, time });
-      const chat = chats.find(c => c.id === currentChat);
-      if (chat) { chat.lastMsg = text; chat.time = time; }
-      input.value = '';
-      renderMessages();
-      renderChatList();
-      setTimeout(() => {
-        if (currentChat) {
-          const replies = ['Ок!', 'Понял', 'Давай', 'Хорошо', '👍', 'Скоро буду', 'Отлично!', 'Договорились'];
-          const reply = replies[Math.floor(Math.random() * replies.length)];
-          const replyTime = new Date();
-          const rTime = replyTime.getHours().toString().padStart(2, '0') + ':' + replyTime.getMinutes().toString().padStart(2, '0');
-          messages[currentChat].push({ text: reply, outgoing: false, time: rTime });
-          if (chat) { chat.lastMsg = reply; chat.time = rTime; }
-          renderMessages();
-          renderChatList();
-        }
-      }, 800 + Math.random() * 2000);
-    }
-    renderChatList();
-  </script>
+</div>
+
+<script>
+  // ---- Инициализация Firebase ----
+  const firebaseConfig = {
+    apiKey: "AIzaSyC6OVfukzGjUK3d6PMdITzwo-qkUV_DrLU",
+    authDomain: "quickchat-5652e.firebaseapp.com",
+    projectId: "quickchat-5652e",
+    storageBucket: "quickchat-5652e.firebasestorage.app",
+    messagingSenderId: "945780684384",
+    appId: "1:945780684384:web:46fe8c32cee6d5e23ef505",
+    measurementId: "G-W651WRJKER"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  let myNickname = '';
+  let currentChatId = null;
+  let currentChatUser = null;
+
+  // ---- Вход ----
+  function login() {
+    const name = document.getElementById('loginName').value.trim();
+    if (!name) return alert('Введи никнейм!');
+    myNickname = name;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    document.getElementById('headerTitle').textContent = 'QuickChat — ' + myNickname;
+    loadChats();
+  }
+
+  function logout() {
+    myNickname = '';
+    currentChatId = null;
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('loginName').value = '';
+  }
+
+  // ---- Создание чата ----
+  async function createChat() {
+    const otherUser = document.getElementById('newChatInput').value.trim();
+    if (!otherUser) return alert('Введи никнейм собеседника!');
+    if (otherUser === myNickname) return alert('Нельзя создать чат с самим собой!');
+
+    const chatId = [myNickname, otherUser].sort().join('_');
+    
+    await db.collection('chats').doc(chatId).set({
+      users: [myNickname, otherUser],
+      lastMsg: '',
+      lastTime: ''
+    }, { merge: true });
+
+    document.getElementById('newChatInput').value = '';
+    loadChats();
+  }
+
+  // ---- Загрузка списка чатов ----
+  function loadChats() {
+    db.collection('chats')
+      .where('users', 'array-contains', myNickname)
+      .onSnapshot(snapshot => {
+        const list = document.getElementById('chatList');
+        list.innerHTML = '';
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const otherUser = data.users.find(u => u !== myNickname);
+          const initials = otherUser.substring(0, 2).toUpperCase();
+          const colors = ['#4a90d9','#e84393','#00b894','#f39c12','#6c5ce7','#fd79a8','#2ecc71','#e74c3c'];
+          const color = colors[otherUser.charCodeAt(0) % colors.length];
+          list.innerHTML += `
+            <div class="chat-item" onclick="openChat('${doc.id}', '${otherUser}')">
+              <div class="avatar" style="background:${color}">${initials}</div>
+              <div class="chat-info">
+                <div class="chat-name">${otherUser}</div>
+                <div class="chat-last">${data.lastMsg || 'Нет сообщений'}</div>
+              </div>
+              <div class="chat-time">${data.lastTime || ''}</div>
+            </div>
+          `;
+        });
+      });
+  }
+
+  // ---- Открыть чат ----
+  function openChat(chatId, otherUser) {
+    currentChatId = chatId;
+    currentChatUser = otherUser;
+    document.getElementById('chatHeader').innerHTML = `<span>💬 ${otherUser}</span>`;
+    document.getElementById('headerTitle').textContent = otherUser;
+    document.querySelector('.back-btn').style.display = 'block';
+    document.getElementById('chatList').classList.add('show-chat');
+    document.getElementById('chatWindow').classList.add('active');
+    loadMessages();
+    document.getElementById('msgInput').focus();
+  }
+
+  function closeChat() {
+    currentChatId = null;
+    currentChatUser = null;
+    document.getElementById('headerTitle').textContent = 'QuickChat — ' + myNickname;
+    document.querySelector('.back-btn').style.display = 'none';
+    document.getElementById('chatList').classList.remove('show-chat');
+    document.getElementById('chatWindow').classList.remove('active');
+  }
+
+  // ---- Загрузка сообщений ----
+  function loadMessages() {
+    if (!currentChatId) return;
+    db.collection('chats').doc(currentChatId).collection('messages')
+      .orderBy('timestamp', 'asc')
+      .onSnapshot(snapshot => {
+        const container = document.getElementById('messages');
+        container.innerHTML = '';
+        snapshot.forEach(doc => {
+          const m = doc.data();
+          const isMine = m.sender === myNickname;
+          container.innerHTML += `
+            <div class="msg ${isMine ? 'outgoing' : 'incoming'}">
+              ${isMine ? '' : '<div class="sender">' + m.sender + '</div>'}
+              ${m.text}
+              <div class="time">${m.time}</div>
+            </div>
+          `;
+        });
+        container.scrollTop = container.scrollHeight;
+      });
+  }
+
+  // ---- Отправить сообщение ----
+  async function sendMessage() {
+    const input = document.getElementById('msgInput');
+    const text = input.value.trim();
+    if (!text || !currentChatId) return;
+
+    const now = new Date();
+    const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+    await db.collection('chats').doc(currentChatId).collection('messages').add({
+      sender: myNickname,
+      text: text,
+      time: time,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    await db.collection('chats').doc(currentChatId).update({
+      lastMsg: text,
+      lastTime: time
+    });
+
+    input.value = '';
+  }
+</script>
 </body>
-          </html>
+</html>
