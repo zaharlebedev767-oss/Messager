@@ -7,7 +7,6 @@
   
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
@@ -39,7 +38,7 @@
     .msg.outgoing { background: #2b5278; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
     .msg .sender { font-size: 11px; color: #5eb5f7; margin-bottom: 3px; font-weight: 500; }
     .msg .time { font-size: 10px; color: #7f8c8d; text-align: right; margin-top: 4px; }
-    .msg img { max-width: 100%; border-radius: 10px; margin-top: 4px; cursor: pointer; display: block; }
+    .msg img { max-width: 200px; border-radius: 10px; margin-top: 4px; cursor: pointer; display: block; }
     #inputArea { display: flex; align-items: center; padding: 8px 12px; background: #1f2c38; gap: 6px; border-top: 1px solid #2a3a45; }
     #inputArea input { flex: 1; background: #242f3d; border: none; border-radius: 20px; padding: 10px 16px; color: #fff; font-size: 14px; outline: none; }
     #inputArea input::placeholder { color: #5a6a7a; }
@@ -52,7 +51,6 @@
     #imageModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 999; justify-content: center; align-items: center; }
     #imageModal img { max-width: 95%; max-height: 90%; border-radius: 8px; }
     #imageModal .close-modal { position: absolute; top: 20px; right: 20px; color: #fff; font-size: 30px; cursor: pointer; }
-    #uploadStatus { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: #fff; padding: 16px 24px; border-radius: 10px; font-size: 14px; z-index: 1000; display: none; }
   </style>
 </head>
 <body>
@@ -81,7 +79,8 @@
       <div id="chatHeader"></div>
       <div id="messages"></div>
       <div id="inputArea">
-        <button class="attach-btn" onclick="pickPhoto()">📎</button>
+        <button class="attach-btn" onclick="document.getElementById('fileInput').click()">📎</button>
+        <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="sendPhoto(event)">
         <input type="text" id="msgInput" placeholder="Сообщение..." onkeydown="if(event.key==='Enter')sendMessage()">
         <button class="send-btn" onclick="sendMessage()">➤</button>
       </div>
@@ -93,8 +92,6 @@
   <span class="close-modal">&times;</span>
   <img id="modalImage" src="">
 </div>
-
-<div id="uploadStatus">Загрузка фото...</div>
 
 <script>
   const firebaseConfig = {
@@ -108,13 +105,11 @@
 
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
-  const storage = firebase.storage();
 
   let myNickname = '';
   let currentChatId = null;
   let currentChatUser = null;
 
-  // ---- Вход ----
   function login() {
     const name = document.getElementById('loginName').value.trim();
     if (!name) return alert('Введи никнейм!');
@@ -133,7 +128,6 @@
     document.getElementById('loginName').value = '';
   }
 
-  // ---- Создание чата ----
   async function createChat() {
     const otherUser = document.getElementById('newChatInput').value.trim();
     if (!otherUser) return alert('Введи никнейм собеседника!');
@@ -147,7 +141,6 @@
     document.getElementById('newChatInput').value = '';
   }
 
-  // ---- Загрузка чатов ----
   function loadChats() {
     db.collection('chats')
       .where('users', 'array-contains', myNickname)
@@ -157,9 +150,10 @@
         snapshot.forEach(doc => {
           const data = doc.data();
           const otherUser = data.users.find(u => u !== myNickname);
+          if (!otherUser) return;
           const initials = otherUser.substring(0, 2).toUpperCase();
           const colors = ['#4a90d9','#e84393','#00b894','#f39c12','#6c5ce7','#fd79a8','#2ecc71','#e74c3c'];
-          const color = colors[otherUser.charCodeAt(0) % colors.length];
+          const color = colors[Math.abs(otherUser.charCodeAt(0)) % colors.length];
           list.innerHTML += `
             <div class="chat-item" onclick="openChat('${doc.id}', '${otherUser}')">
               <div class="avatar" style="background:${color}">${initials}</div>
@@ -174,7 +168,6 @@
       });
   }
 
-  // ---- Открыть чат ----
   function openChat(chatId, otherUser) {
     currentChatId = chatId;
     currentChatUser = otherUser;
@@ -196,7 +189,6 @@
     document.getElementById('chatWindow').classList.remove('active');
   }
 
-  // ---- Загрузка сообщений ----
   function loadMessages() {
     if (!currentChatId) return;
     db.collection('chats').doc(currentChatId).collection('messages')
@@ -208,14 +200,15 @@
           const m = doc.data();
           const isMine = m.sender === myNickname;
           let content = '';
-          if (m.type === 'photo' && m.photoURL) {
-            content = `<img src="${m.photoURL}" onclick="showImage('${m.photoURL}')" style="max-width:200px;" alt="Фото">`;
-            if (m.text && m.text !== '📷 Фото') {
-              content += `<br>${m.text}`;
-            }
-          } else {
-            content = m.text;
+
+          if (m.type === 'photo' && m.photoData) {
+            content = `<img src="${m.photoData}" onclick="showImage('${m.photoData}')" alt="Фото">`;
           }
+          if (m.text && m.text !== '📷 Фото' && m.text !== '') {
+            content += (content ? '<br>' : '') + m.text;
+          }
+          if (!content) content = m.text || '';
+
           container.innerHTML += `
             <div class="msg ${isMine ? 'outgoing' : 'incoming'}">
               ${isMine ? '' : '<div class="sender">' + m.sender + '</div>'}
@@ -228,40 +221,14 @@
       });
   }
 
-  // ---- Выбор фото (с запросом разрешения) ----
-  function pickPhoto() {
-    if (!currentChatId) {
-      alert('Сначала откройте чат!');
-      return;
-    }
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.capture = 'environment';
-    input.onchange = function(e) {
-      const file = e.target.files[0];
-      if (file) {
-        uploadPhoto(file);
-      }
-    };
-    input.click();
-  }
+  function sendPhoto(event) {
+    const file = event.target.files[0];
+    if (!file || !currentChatId) return;
 
-  // ---- Загрузка фото в Storage ----
-  async function uploadPhoto(file) {
-    if (!currentChatId) return;
-
-    document.getElementById('uploadStatus').style.display = 'block';
-
-    try {
-      const fileName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9.]/g, '_');
-      const storageRef = storage.ref('chat_photos/' + currentChatId + '/' + fileName);
-      
-      await storageRef.put(file);
-      const photoURL = await storageRef.getDownloadURL();
-
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      const photoData = e.target.result;
       const caption = document.getElementById('msgInput').value.trim();
-      
       const now = new Date();
       const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
 
@@ -269,7 +236,7 @@
         sender: myNickname,
         text: caption || '📷 Фото',
         type: 'photo',
-        photoURL: photoURL,
+        photoData: photoData,
         time: time,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
       });
@@ -280,15 +247,11 @@
       });
 
       document.getElementById('msgInput').value = '';
-      document.getElementById('uploadStatus').style.display = 'none';
-
-    } catch (error) {
-      document.getElementById('uploadStatus').style.display = 'none';
-      alert('Ошибка загрузки: ' + error.message);
-    }
+      event.target.value = '';
+    };
+    reader.readAsDataURL(file);
   }
 
-  // ---- Отправка текстового сообщения ----
   async function sendMessage() {
     const input = document.getElementById('msgInput');
     const text = input.value.trim();
@@ -313,7 +276,6 @@
     input.value = '';
   }
 
-  // ---- Просмотр фото на весь экран ----
   function showImage(url) {
     document.getElementById('modalImage').src = url;
     document.getElementById('imageModal').style.display = 'flex';
