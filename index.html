@@ -28,7 +28,7 @@
     #main { flex: 1; display: flex; overflow: hidden; }
     
     /* Нижнее меню */
-    #tabBar { display: flex; background: #141428; border-top: 1px solid rgba(255,255,255,0.05); padding: 6px 0 8px; }
+    #tabBar { display: flex; background: #141428; border-top: 1px solid rgba(255,255,255,0.05); padding: 6px 0 8px; gap: 2px; z-index: 20; }
     .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 6px 0; color: #5b5b7a; transition: 0.2s; font-size: 11px; font-weight: 500; }
     .tab.active { color: #a78bfa; }
     .tab .tab-icon { font-size: 22px; }
@@ -48,13 +48,11 @@
     .chat-last { color: #6b6b8a; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 3px; }
     .chat-meta { text-align: right; flex-shrink: 0; }
     .chat-time { color: #5b5b7a; font-size: 11px; }
-    .chat-badge { background: #7c3aed; color: #fff; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 10px; margin-top: 4px; display: inline-block; min-width: 20px; text-align: center; }
     
     /* Окно чата */
     #chatWindow { width: 100%; background: #0a0a14; display: flex; flex-direction: column; position: absolute; top: 56px; left: 0; right: 0; bottom: 56px; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); z-index: 10; }
     #chatWindow.active { transform: translateX(0); }
     #chatHeader { background: #141428; padding: 12px 18px; color: #fff; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    #chatHeader .status-text { font-size: 11px; color: #5b5b7a; font-weight: 400; }
     #messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
     .msg { max-width: 78%; padding: 12px 16px; border-radius: 20px; font-size: 14px; line-height: 1.5; word-wrap: break-word; animation: fadeIn 0.25s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
@@ -63,14 +61,12 @@
     .msg .sender { font-size: 11px; color: #a78bfa; margin-bottom: 4px; font-weight: 600; }
     .msg .time { font-size: 10px; color: rgba(255,255,255,0.45); text-align: right; margin-top: 4px; }
     .msg.outgoing .time { color: rgba(255,255,255,0.6); }
-    .msg .read-check { font-size: 10px; color: #60a5fa; margin-left: 4px; }
     
     #inputArea { display: flex; align-items: center; padding: 10px 14px; background: #141428; gap: 8px; border-top: 1px solid rgba(255,255,255,0.05); }
     #inputArea input { flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); border-radius: 22px; padding: 11px 18px; color: #fff; font-size: 14px; outline: none; }
     #inputArea input:focus { border-color: #7c3aed; }
     #inputArea input::placeholder { color: #4a4a6a; }
     .send-btn { background: linear-gradient(135deg, #7c3aed, #3b82f6); border: none; border-radius: 50%; width: 42px; height: 42px; color: #fff; font-size: 18px; cursor: pointer; flex-shrink: 0; box-shadow: 0 4px 12px rgba(124,58,237,0.4); }
-    .send-btn:active { transform: scale(0.92); }
     
     #searchArea { padding: 10px 14px; background: #0f0f1a; display: flex; gap: 8px; }
     #searchArea input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 10px 16px; color: #fff; font-size: 13px; outline: none; }
@@ -82,10 +78,13 @@
     /* Профиль */
     #profileScreen { width: 100%; background: #0f0f1a; overflow-y: auto; flex-shrink: 0; display: none; flex-direction: column; align-items: center; padding: 30px 20px; }
     #profileScreen.active { display: flex; }
-    #profileScreen .status-input { width: 100%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 12px 16px; color: #fff; font-size: 14px; outline: none; margin-bottom: 12px; text-align: center; }
-    #profileScreen .save-btn { background: #7c3aed; border: none; border-radius: 14px; padding: 12px 24px; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; }
-    #profileScreen .info-label { color: #5b5b7a; font-size: 12px; margin-bottom: 4px; }
-    #profileScreen .info-value { color: #fff; font-size: 16px; font-weight: 600; margin-bottom: 20px; }
+    #profileScreen .profile-username-display { color: #a78bfa; font-size: 16px; margin-bottom: 4px; background: rgba(124,58,237,0.15); padding: 4px 12px; border-radius: 20px; }
+    #profileScreen h3 { color: #fff; margin: 12px 0 6px; font-size: 18px; }
+    #profileScreen .setting-row { width: 100%; background: rgba(255,255,255,0.04); border-radius: 12px; padding: 12px 16px; margin-bottom: 8px; }
+    #profileScreen .setting-label { color: #6b6b8a; font-size: 12px; margin-bottom: 6px; }
+    #profileScreen input { width: 100%; background: transparent; border: none; color: #fff; font-size: 15px; outline: none; padding: 4px 0; }
+    #profileScreen input::placeholder { color: #4a4a6a; }
+    #profileScreen .save-btn { background: #7c3aed; border: none; border-radius: 14px; padding: 14px; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -94,7 +93,7 @@
   <div class="logo">💬</div>
   <h2>QuickChat</h2>
   <div class="subtitle">Быстрый и защищённый</div>
-  <input type="text" id="loginName" placeholder="Придумайте никнейм..." autocomplete="off">
+  <input type="text" id="loginName" placeholder="Придумайте @username..." autocomplete="off">
   <button onclick="login()">Войти</button>
 </div>
 
@@ -102,22 +101,29 @@
   <div id="header">
     <button class="back-btn" onclick="closeChat()">←</button>
     <span id="headerTitle">QuickChat</span>
-    <button id="logoutBtn" onclick="logout()">Выйти</button>
+    <button id="logoutBtn" onclick="switchTab('profile')" style="margin-left:auto;background:none;border:none;color:#a78bfa;font-size:13px;cursor:pointer;">👤 Профиль</button>
   </div>
   
   <div id="searchArea">
-    <input type="text" id="searchInput" placeholder="🔍 Поиск чатов..." oninput="renderChatList(this.value)" autocomplete="off">
+    <input type="text" id="searchInput" placeholder="🔍 Поиск или @username для чата..." oninput="handleSearchInput(this.value)" autocomplete="off">
+    <button onclick="createChat()">+</button>
   </div>
 
   <div id="main">
     <div id="chatList"></div>
     <div id="profileScreen">
       <div class="avatar-lg" id="profileAvatar" style="background:linear-gradient(135deg,#7c3aed,#3b82f6)">?</div>
-      <div class="info-label">Никнейм</div>
-      <div class="info-value" id="profileName">—</div>
-      <div class="info-label">Статус</div>
-      <input class="status-input" id="statusInput" placeholder="Введите статус..." maxlength="30">
-      <button class="save-btn" onclick="saveStatus()">Сохранить статус</button>
+      <div id="profileUsernameDisplay" class="profile-username-display">@username</div>
+      <h3 id="profileName">—</h3>
+      <div class="setting-row">
+        <div class="setting-label">Имя</div>
+        <input type="text" id="editName" placeholder="Ваше имя...">
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">Статус</div>
+        <input type="text" id="editStatus" placeholder="Введите статус...">
+      </div>
+      <button class="save-btn" onclick="saveProfile()">Сохранить изменения</button>
     </div>
     <div id="chatWindow">
       <div id="chatHeader"></div>
@@ -153,30 +159,32 @@
   const db = firebase.firestore();
 
   let myNickname = '';
+  let myUsername = '';
+  let myDisplayName = '';
   let myStatus = 'В сети';
   let currentChatId = null;
   let currentChatUser = null;
   let activeTab = 'chats';
 
-  // Звук отправки
-  const sendSound = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
-
   function login() {
-    const name = document.getElementById('loginName').value.trim();
-    if (!name) return alert('Введите никнейм!');
-    myNickname = name;
+    const raw = document.getElementById('loginName').value.trim();
+    if (!raw) return alert('Введите @username!');
+    myUsername = raw.startsWith('@') ? raw.substring(1) : raw;
+    myNickname = myUsername;
+    myDisplayName = myUsername;
+    
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
     document.getElementById('headerTitle').textContent = 'QuickChat';
-    updateProfileUI();
-    loadChats();
+    
     loadProfile();
+    loadChats();
+    updateProfileUI();
   }
 
   function logout() {
     if (currentChatId) closeChat();
     myNickname = '';
-    currentChatId = null;
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('app').style.display = 'none';
     document.getElementById('loginName').value = '';
@@ -187,33 +195,40 @@
     if (!myNickname) return;
     const doc = await db.collection('profiles').doc(myNickname).get();
     if (doc.exists) {
+      myDisplayName = doc.data().displayName || myNickname;
       myStatus = doc.data().status || 'В сети';
     }
     updateProfileUI();
-    // Обновляем статус "онлайн"
     await db.collection('profiles').doc(myNickname).set({
+      username: myUsername,
       nickname: myNickname,
+      displayName: myDisplayName,
       status: myStatus,
       lastSeen: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
   }
 
   function updateProfileUI() {
-    const initials = myNickname.substring(0, 2).toUpperCase();
+    const initials = myDisplayName.substring(0, 2).toUpperCase();
     document.getElementById('profileAvatar').textContent = initials;
-    document.getElementById('profileName').textContent = myNickname;
-    document.getElementById('statusInput').value = myStatus;
+    document.getElementById('profileName').textContent = myDisplayName;
+    document.getElementById('profileUsernameDisplay').textContent = '@' + myUsername;
+    document.getElementById('editName').value = myDisplayName;
+    document.getElementById('editStatus').value = myStatus;
   }
 
-  async function saveStatus() {
-    myStatus = document.getElementById('statusInput').value.trim() || 'В сети';
+  async function saveProfile() {
+    myDisplayName = document.getElementById('editName').value.trim() || myUsername;
+    myStatus = document.getElementById('editStatus').value.trim() || 'В сети';
     await db.collection('profiles').doc(myNickname).set({
+      username: myUsername,
       nickname: myNickname,
+      displayName: myDisplayName,
       status: myStatus,
       lastSeen: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
     updateProfileUI();
-    alert('Статус сохранён!');
+    alert('Профиль обновлён!');
   }
 
   // ---- Вкладки ----
@@ -228,24 +243,29 @@
   }
 
   // ---- Чаты ----
+  function handleSearchInput(val) {
+    renderChatList(val);
+  }
+
   async function createChat() {
-    const input = document.getElementById('searchInput');
-    const otherUser = input.value.trim();
-    if (!otherUser) return alert('Введите никнейм!');
-    if (otherUser === myNickname) return alert('Нельзя создать чат с собой!');
-    const chatId = [myNickname, otherUser].sort().join('_');
+    const raw = document.getElementById('searchInput').value.trim();
+    const otherUser = raw.startsWith('@') ? raw.substring(1) : raw;
+    if (!otherUser) return alert('Введите @username!');
+    if (otherUser === myUsername) return alert('Нельзя создать чат с собой!');
+    
+    const chatId = [myUsername, otherUser].sort().join('_');
     await db.collection('chats').doc(chatId).set({
-      users: [myNickname, otherUser],
+      users: [myUsername, otherUser],
       lastMsg: '',
       lastTime: ''
     }, { merge: true });
-    input.value = '';
+    document.getElementById('searchInput').value = '';
     renderChatList();
   }
 
   function loadChats() {
     db.collection('chats')
-      .where('users', 'array-contains', myNickname)
+      .where('users', 'array-contains', myUsername)
       .onSnapshot(snapshot => {
         window._chatsSnapshot = snapshot;
         renderChatList();
@@ -256,13 +276,13 @@
     const snapshot = window._chatsSnapshot;
     const list = document.getElementById('chatList');
     if (!snapshot || snapshot.empty) {
-      list.innerHTML = '<div style="color:#4a4a6a;text-align:center;padding:40px;font-size:14px">Нет чатов.<br>Введите никнейм в поиск и нажмите +</div>';
+      list.innerHTML = '<div style="color:#4a4a6a;text-align:center;padding:40px;font-size:14px">Нет чатов.<br>Введите @username в поиск и нажмите +</div>';
       return;
     }
     list.innerHTML = '';
     snapshot.forEach(doc => {
       const data = doc.data();
-      const otherUser = data.users.find(u => u !== myNickname);
+      const otherUser = data.users.find(u => u !== myUsername);
       if (!otherUser || (filter && !otherUser.toLowerCase().includes(filter.toLowerCase()))) return;
       const initials = otherUser.substring(0, 2).toUpperCase();
       const gradients = [
@@ -298,9 +318,9 @@
     document.getElementById('chatHeader').innerHTML = `
       <div style="display:flex;align-items:center;gap:10px">
         <div class="avatar-sm" style="background:linear-gradient(135deg,#7c3aed,#3b82f6)">${otherUser.substring(0,2).toUpperCase()}</div>
-        <div><div>${otherUser}</div><div class="status-text">был(а) недавно</div></div>
+        <div><div>@${otherUser}</div><div style="font-size:11px;color:#5b5b7a">был(а) недавно</div></div>
       </div>`;
-    document.getElementById('headerTitle').textContent = otherUser;
+    document.getElementById('headerTitle').textContent = '@' + otherUser;
     document.querySelector('.back-btn').style.display = 'flex';
     document.getElementById('chatList').classList.add('show-chat');
     document.getElementById('chatWindow').classList.add('active');
@@ -326,12 +346,12 @@
         container.innerHTML = '';
         snapshot.forEach(doc => {
           const m = doc.data();
-          const isMine = m.sender === myNickname;
+          const isMine = m.sender === myUsername;
           container.innerHTML += `
             <div class="msg ${isMine ? 'outgoing' : 'incoming'}">
-              ${isMine ? '' : '<div class="sender">' + m.sender + '</div>'}
+              ${isMine ? '' : '<div class="sender">@' + m.sender + '</div>'}
               ${m.text}
-              <div class="time">${m.time}<span class="read-check">✓✓</span></div>
+              <div class="time">${m.time}</div>
             </div>
           `;
         });
@@ -346,14 +366,13 @@
     const now = new Date();
     const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
     await db.collection('chats').doc(currentChatId).collection('messages').add({
-      sender: myNickname,
+      sender: myUsername,
       text: text,
       type: 'text',
       time: time,
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
     });
     await db.collection('chats').doc(currentChatId).update({ lastMsg: text, lastTime: time });
-    try { sendSound.play(); } catch(e) {}
     input.value = '';
   }
 </script>
