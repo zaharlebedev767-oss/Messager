@@ -7,6 +7,7 @@
   
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
@@ -57,7 +58,7 @@
 
 <div id="loginScreen">
   <h2>🚀 QuickChat</h2>
-  <input type="text" id="loginName" placeholder="Твой никнейм...">
+  <input type="text" id="loginName" placeholder="Твой никнейм..." autocomplete="off">
   <button onclick="login()">Войти в чат</button>
 </div>
 
@@ -69,7 +70,7 @@
   </div>
   
   <div id="newChatArea">
-    <input type="text" id="newChatInput" placeholder="Никнейм собеседника...">
+    <input type="text" id="newChatInput" placeholder="Никнейм собеседника..." autocomplete="off">
     <button onclick="createChat()">+</button>
   </div>
 
@@ -81,7 +82,7 @@
       <div id="inputArea">
         <button class="attach-btn" onclick="document.getElementById('fileInput').click()">📎</button>
         <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="sendPhoto(event)">
-        <input type="text" id="msgInput" placeholder="Сообщение..." onkeydown="if(event.key==='Enter')sendMessage()">
+        <input type="text" id="msgInput" placeholder="Сообщение..." onkeydown="if(event.key==='Enter')sendMessage()" autocomplete="off">
         <button class="send-btn" onclick="sendMessage()">➤</button>
       </div>
     </div>
@@ -105,6 +106,7 @@
 
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
+  const storage = firebase.storage();
 
   let myNickname = '';
   let currentChatId = null;
@@ -151,9 +153,9 @@
           const data = doc.data();
           const otherUser = data.users.find(u => u !== myNickname);
           if (!otherUser) return;
-          const initials = otherUser.substring(0, 2).toUpperCase();
+          const initials = (otherUser || '??').substring(0, 2).toUpperCase();
           const colors = ['#4a90d9','#e84393','#00b894','#f39c12','#6c5ce7','#fd79a8','#2ecc71','#e74c3c'];
-          const color = colors[Math.abs(otherUser.charCodeAt(0)) % colors.length];
+          const color = colors[Math.abs((otherUser || 'a').charCodeAt(0)) % colors.length];
           list.innerHTML += `
             <div class="chat-item" onclick="openChat('${doc.id}', '${otherUser}')">
               <div class="avatar" style="background:${color}">${initials}</div>
@@ -201,10 +203,10 @@
           const isMine = m.sender === myNickname;
           let content = '';
 
-          if (m.type === 'photo' && m.photoData) {
-            content = `<img src="${m.photoData}" onclick="showImage('${m.photoData}')" alt="Фото">`;
+          if (m.type === 'photo' && m.photoURL) {
+            content = `<img src="${m.photoURL}" onclick="showImage('${m.photoURL}')" alt="Фото">`;
           }
-          if (m.text && m.text !== '📷 Фото' && m.text !== '') {
+          if (m.text && m.text !== '📷 Фото') {
             content += (content ? '<br>' : '') + m.text;
           }
           if (!content) content = m.text || '';
@@ -225,9 +227,11 @@
     const file = event.target.files[0];
     if (!file || !currentChatId) return;
 
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-      const photoData = e.target.result;
+    const storageRef = storage.ref('photos/' + currentChatId + '/' + Date.now() + '.jpg');
+    
+    storageRef.put(file).then(() => {
+      return storageRef.getDownloadURL();
+    }).then(async (photoURL) => {
       const caption = document.getElementById('msgInput').value.trim();
       const now = new Date();
       const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
@@ -236,7 +240,7 @@
         sender: myNickname,
         text: caption || '📷 Фото',
         type: 'photo',
-        photoData: photoData,
+        photoURL: photoURL,
         time: time,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
       });
@@ -248,8 +252,10 @@
 
       document.getElementById('msgInput').value = '';
       event.target.value = '';
-    };
-    reader.readAsDataURL(file);
+    }).catch(error => {
+      alert('Ошибка загрузки фото: ' + error.message);
+      event.target.value = '';
+    });
   }
 
   async function sendMessage() {
