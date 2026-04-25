@@ -39,12 +39,12 @@
     .msg.outgoing { background: #2b5278; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
     .msg .sender { font-size: 11px; color: #5eb5f7; margin-bottom: 3px; font-weight: 500; }
     .msg .time { font-size: 10px; color: #7f8c8d; text-align: right; margin-top: 4px; }
-    .msg img { max-width: 100%; border-radius: 10px; margin-top: 4px; cursor: pointer; }
+    .msg img { max-width: 100%; border-radius: 10px; margin-top: 4px; cursor: pointer; display: block; }
     #inputArea { display: flex; align-items: center; padding: 8px 12px; background: #1f2c38; gap: 6px; border-top: 1px solid #2a3a45; }
     #inputArea input { flex: 1; background: #242f3d; border: none; border-radius: 20px; padding: 10px 16px; color: #fff; font-size: 14px; outline: none; }
     #inputArea input::placeholder { color: #5a6a7a; }
     .attach-btn { background: #5eb5f7; border: none; border-radius: 50%; width: 36px; height: 36px; color: #fff; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    #inputArea .send-btn { background: #5eb5f7; border: none; border-radius: 50%; width: 40px; height: 40px; color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .send-btn { background: #5eb5f7; border: none; border-radius: 50%; width: 40px; height: 40px; color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     #newChatArea { display: flex; align-items: center; padding: 8px 12px; background: #17212b; gap: 8px; border-bottom: 1px solid #1f2c38; }
     #newChatArea input { flex: 1; background: #242f3d; border: none; border-radius: 20px; padding: 8px 14px; color: #fff; font-size: 13px; outline: none; }
     #newChatArea button { background: #5eb5f7; border: none; border-radius: 50%; width: 34px; height: 34px; color: #fff; font-size: 16px; cursor: pointer; flex-shrink: 0; }
@@ -52,6 +52,7 @@
     #imageModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 999; justify-content: center; align-items: center; }
     #imageModal img { max-width: 95%; max-height: 90%; border-radius: 8px; }
     #imageModal .close-modal { position: absolute; top: 20px; right: 20px; color: #fff; font-size: 30px; cursor: pointer; }
+    #uploadStatus { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: #fff; padding: 16px 24px; border-radius: 10px; font-size: 14px; z-index: 1000; display: none; }
   </style>
 </head>
 <body>
@@ -80,8 +81,7 @@
       <div id="chatHeader"></div>
       <div id="messages"></div>
       <div id="inputArea">
-        <button class="attach-btn" onclick="document.getElementById('fileInput').click()">📎</button>
-        <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="sendPhoto(event)">
+        <button class="attach-btn" onclick="pickPhoto()">📎</button>
         <input type="text" id="msgInput" placeholder="Сообщение..." onkeydown="if(event.key==='Enter')sendMessage()">
         <button class="send-btn" onclick="sendMessage()">➤</button>
       </div>
@@ -93,6 +93,8 @@
   <span class="close-modal">&times;</span>
   <img id="modalImage" src="">
 </div>
+
+<div id="uploadStatus">Загрузка фото...</div>
 
 <script>
   const firebaseConfig = {
@@ -112,6 +114,7 @@
   let currentChatId = null;
   let currentChatUser = null;
 
+  // ---- Вход ----
   function login() {
     const name = document.getElementById('loginName').value.trim();
     if (!name) return alert('Введи никнейм!');
@@ -130,6 +133,7 @@
     document.getElementById('loginName').value = '';
   }
 
+  // ---- Создание чата ----
   async function createChat() {
     const otherUser = document.getElementById('newChatInput').value.trim();
     if (!otherUser) return alert('Введи никнейм собеседника!');
@@ -141,9 +145,9 @@
       lastTime: ''
     }, { merge: true });
     document.getElementById('newChatInput').value = '';
-    loadChats();
   }
 
+  // ---- Загрузка чатов ----
   function loadChats() {
     db.collection('chats')
       .where('users', 'array-contains', myNickname)
@@ -170,6 +174,7 @@
       });
   }
 
+  // ---- Открыть чат ----
   function openChat(chatId, otherUser) {
     currentChatId = chatId;
     currentChatUser = otherUser;
@@ -191,6 +196,7 @@
     document.getElementById('chatWindow').classList.remove('active');
   }
 
+  // ---- Загрузка сообщений ----
   function loadMessages() {
     if (!currentChatId) return;
     db.collection('chats').doc(currentChatId).collection('messages')
@@ -202,8 +208,11 @@
           const m = doc.data();
           const isMine = m.sender === myNickname;
           let content = '';
-          if (m.type === 'photo') {
-            content = `<img src="${m.photoURL}" onclick="showImage('${m.photoURL}')" alt="Фото">${m.text ? '<br>' + m.text : ''}`;
+          if (m.type === 'photo' && m.photoURL) {
+            content = `<img src="${m.photoURL}" onclick="showImage('${m.photoURL}')" style="max-width:200px;" alt="Фото">`;
+            if (m.text && m.text !== '📷 Фото') {
+              content += `<br>${m.text}`;
+            }
           } else {
             content = m.text;
           }
@@ -219,49 +228,92 @@
       });
   }
 
+  // ---- Выбор фото (с запросом разрешения) ----
+  function pickPhoto() {
+    if (!currentChatId) {
+      alert('Сначала откройте чат!');
+      return;
+    }
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment';
+    input.onchange = function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        uploadPhoto(file);
+      }
+    };
+    input.click();
+  }
+
+  // ---- Загрузка фото в Storage ----
+  async function uploadPhoto(file) {
+    if (!currentChatId) return;
+
+    document.getElementById('uploadStatus').style.display = 'block';
+
+    try {
+      const fileName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+      const storageRef = storage.ref('chat_photos/' + currentChatId + '/' + fileName);
+      
+      await storageRef.put(file);
+      const photoURL = await storageRef.getDownloadURL();
+
+      const caption = document.getElementById('msgInput').value.trim();
+      
+      const now = new Date();
+      const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+      await db.collection('chats').doc(currentChatId).collection('messages').add({
+        sender: myNickname,
+        text: caption || '📷 Фото',
+        type: 'photo',
+        photoURL: photoURL,
+        time: time,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      await db.collection('chats').doc(currentChatId).update({
+        lastMsg: '📷 Фото',
+        lastTime: time
+      });
+
+      document.getElementById('msgInput').value = '';
+      document.getElementById('uploadStatus').style.display = 'none';
+
+    } catch (error) {
+      document.getElementById('uploadStatus').style.display = 'none';
+      alert('Ошибка загрузки: ' + error.message);
+    }
+  }
+
+  // ---- Отправка текстового сообщения ----
   async function sendMessage() {
     const input = document.getElementById('msgInput');
     const text = input.value.trim();
     if (!text || !currentChatId) return;
-    await sendToFirebase(text, 'text');
-    input.value = '';
-  }
 
-  async function sendPhoto(event) {
-    const file = event.target.files[0];
-    if (!file || !currentChatId) return;
-
-    const storageRef = storage.ref('chat_photos/' + currentChatId + '/' + Date.now() + '_' + file.name);
-    await storageRef.put(file);
-    const photoURL = await storageRef.getDownloadURL();
-
-    const caption = document.getElementById('msgInput').value.trim();
-    await sendToFirebase(caption || '📷 Фото', 'photo', photoURL);
-    document.getElementById('msgInput').value = '';
-    event.target.value = '';
-  }
-
-  async function sendToFirebase(content, type, photoURL = null) {
     const now = new Date();
     const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
 
-    const msgData = {
+    await db.collection('chats').doc(currentChatId).collection('messages').add({
       sender: myNickname,
-      text: content,
-      type: type,
+      text: text,
+      type: 'text',
       time: time,
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    if (photoURL) msgData.photoURL = photoURL;
-
-    await db.collection('chats').doc(currentChatId).collection('messages').add(msgData);
+    });
 
     await db.collection('chats').doc(currentChatId).update({
-      lastMsg: type === 'photo' ? '📷 Фото' : content,
+      lastMsg: text,
       lastTime: time
     });
+
+    input.value = '';
   }
 
+  // ---- Просмотр фото на весь экран ----
   function showImage(url) {
     document.getElementById('modalImage').src = url;
     document.getElementById('imageModal').style.display = 'flex';
