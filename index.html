@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>QuickChat</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    body {
+      background: #1a1a1a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    #app {
+      width: 100%;
+      max-width: 420px;
+      height: 100vh;
+      max-height: 750px;
+      background: #17212b;
+      display: flex;
+      flex-direction: column;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(0,0,0,0.5);
+    }
+    #header {
+      background: #1f2c38;
+      padding: 12px 16px;
+      color: #fff;
+      font-size: 18px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid #2a3a45;
+    }
+    #header .back-btn {
+      background: none;
+      border: none;
+      color: #5eb5f7;
+      font-size: 20px;
+      cursor: pointer;
+      display: none;
+    }
+    #main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+    #chatList {
+      width: 100%;
+      background: #17212b;
+      overflow-y: auto;
+      flex-shrink: 0;
+      transition: transform 0.3s;
+    }
+    #chatList.show-chat {
+      transform: translateX(-100%);
+    }
+    .chat-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      gap: 12px;
+      cursor: pointer;
+      border-bottom: 1px solid #1f2c38;
+      transition: background 0.15s;
+    }
+    .chat-item:active {
+      background: #1f2c38;
+    }
+    .avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: bold;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .chat-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .chat-name {
+      color: #fff;
+      font-size: 16px;
+      font-weight: 500;
+    }
+    .chat-last {
+      color: #7f8c8d;
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .chat-time {
+      color: #5eb5f7;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    #chatWindow {
+      width: 100%;
+      background: #0e1621;
+      display: flex;
+      flex-direction: column;
+      position: absolute;
+      top: 50px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      transform: translateX(100%);
+      transition: transform 0.3s;
+    }
+    #chatWindow.active {
+      transform: translateX(0);
+    }
+    #chatHeader {
+      background: #1f2c38;
+      padding: 12px 16px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid #2a3a45;
+    }
+    #messages {
+      flex: 1;
+      padding: 12px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .msg {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 18px;
+      font-size: 14px;
+      line-height: 1.4;
+      word-wrap: break-word;
+      position: relative;
+      animation: fadeIn 0.2s;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .msg.incoming {
+      background: #1f2c38;
+      color: #fff;
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+    .msg.outgoing {
+      background: #2b5278;
+      color: #fff;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+    .msg .time {
+      font-size: 10px;
+      color: #7f8c8d;
+      text-align: right;
+      margin-top: 4px;
+    }
+    #inputArea {
+      display: flex;
+      align-items: center;
+      padding: 8px 12px;
+      background: #1f2c38;
+      gap: 8px;
+      border-top: 1px solid #2a3a45;
+    }
+    #inputArea input {
+      flex: 1;
+      background: #242f3d;
+      border: none;
+      border-radius: 20px;
+      padding: 10px 16px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+    #inputArea input::placeholder {
+      color: #5a6a7a;
+    }
+    #inputArea button {
+      background: #5eb5f7;
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    #inputArea button:active {
+      background: #4a9fd9;
+    }
+    #searchBar {
+      padding: 8px 12px;
+      background: #17212b;
+    }
+    #searchBar input {
+      width: 100%;
+      background: #242f3d;
+      border: none;
+      border-radius: 10px;
+      padding: 8px 14px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="header">
+      <button class="back-btn" onclick="closeChat()">←</button>
+      <span id="headerTitle">QuickChat</span>
+    </div>
+    <div id="searchBar">
+      <input type="text" placeholder="Поиск чатов..." oninput="filterChats(this.value)">
+    </div>
+    <div id="main">
+      <div id="chatList"></div>
+      <div id="chatWindow">
+        <div id="chatHeader"></div>
+        <div id="messages"></div>
+        <div id="inputArea">
+          <input type="text" id="msgInput" placeholder="Сообщение..." onkeydown="if(event.key==='Enter')sendMessage()">
+          <button onclick="sendMessage()">➤</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const chats = [
+      { id: 1, name: 'Алексей', initials: 'АЛ', lastMsg: 'Привет, как дела?', time: '12:30', color: '#4a90d9' },
+      { id: 2, name: 'Мария', initials: 'МА', lastMsg: 'Встречаемся завтра?', time: '11:15', color: '#e84393' },
+      { id: 3, name: 'Рабочая группа', initials: 'РГ', lastMsg: 'Дедлайн перенесли', time: '09:45', color: '#00b894' },
+      { id: 4, name: 'Папа', initials: 'ПА', lastMsg: 'Перезвони мне', time: 'Вчера', color: '#f39c12' },
+      { id: 5, name: 'Олег', initials: 'ОЛ', lastMsg: 'Скинь файл', time: 'Вчера', color: '#6c5ce7' },
+      { id: 6, name: 'Анна', initials: 'АН', lastMsg: 'Ок, договорились', time: 'Пн', color: '#fd79a8' },
+    ];
+    const messages = {
+      1: [
+        { text: 'Привет! 👋', outgoing: false, time: '10:00' },
+        { text: 'Привет! Как сам?', outgoing: true, time: '10:01' },
+      ],
+      2: [
+        { text: 'Ты где?', outgoing: false, time: '11:00' },
+        { text: 'Уже еду!', outgoing: true, time: '11:02' },
+      ],
+      3: [
+        { text: 'Кто сделает презентацию?', outgoing: false, time: '09:30' },
+      ],
+      4: [
+        { text: 'Перезвони мне', outgoing: false, time: 'Вчера' },
+      ],
+      5: [
+        { text: 'Скинь файл', outgoing: false, time: 'Вчера' },
+      ],
+      6: [
+        { text: 'Ок, договорились', outgoing: false, time: 'Пн' },
+      ],
+    };
+    let currentChat = null;
+    function renderChatList(filter = '') {
+      const list = document.getElementById('chatList');
+      const filtered = chats.filter(c => c.name.toLowerCase().includes(filter.toLowerCase()));
+      list.innerHTML = filtered.map(c => `
+        <div class="chat-item" onclick="openChat(${c.id})">
+          <div class="avatar" style="background:${c.color}">${c.initials}</div>
+          <div class="chat-info">
+            <div class="chat-name">${c.name}</div>
+            <div class="chat-last">${c.lastMsg}</div>
+          </div>
+          <div class="chat-time">${c.time}</div>
+        </div>
+      `).join('');
+    }
+    function filterChats(query) { renderChatList(query); }
+    function openChat(id) {
+      currentChat = id;
+      const chat = chats.find(c => c.id === id);
+      document.getElementById('chatHeader').innerHTML = `
+        <span style="display:flex;align-items:center;gap:10px">
+          <div class="avatar" style="background:${chat.color};width:36px;height:36px;font-size:14px">${chat.initials}</div>
+          ${chat.name}
+        </span>
+      `;
+      document.getElementById('headerTitle').textContent = chat.name;
+      document.querySelector('.back-btn').style.display = 'block';
+      document.getElementById('chatList').classList.add('show-chat');
+      document.getElementById('chatWindow').classList.add('active');
+      renderMessages();
+      document.getElementById('msgInput').focus();
+    }
+    function closeChat() {
+      currentChat = null;
+      document.getElementById('headerTitle').textContent = 'QuickChat';
+      document.querySelector('.back-btn').style.display = 'none';
+      document.getElementById('chatList').classList.remove('show-chat');
+      document.getElementById('chatWindow').classList.remove('active');
+    }
+    function renderMessages() {
+      const container = document.getElementById('messages');
+      if (!currentChat || !messages[currentChat]) {
+        container.innerHTML = '<div style="color:#5a6a7a;text-align:center;padding:20px">Нет сообщений</div>';
+        return;
+      }
+      container.innerHTML = messages[currentChat].map(m => `
+        <div class="msg ${m.outgoing ? 'outgoing' : 'incoming'}">
+          ${m.text}
+          <div class="time">${m.time}</div>
+        </div>
+      `).join('');
+      container.scrollTop = container.scrollHeight;
+    }
+    function sendMessage() {
+      const input = document.getElementById('msgInput');
+      const text = input.value.trim();
+      if (!text || !currentChat) return;
+      const now = new Date();
+      const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+      if (!messages[currentChat]) messages[currentChat] = [];
+      messages[currentChat].push({ text, outgoing: true, time });
+      const chat = chats.find(c => c.id === currentChat);
+      if (chat) { chat.lastMsg = text; chat.time = time; }
+      input.value = '';
+      renderMessages();
+      renderChatList();
+      setTimeout(() => {
+        if (currentChat) {
+          const replies = ['Ок!', 'Понял', 'Давай', 'Хорошо', '👍', 'Скоро буду', 'Отлично!', 'Договорились'];
+          const reply = replies[Math.floor(Math.random() * replies.length)];
+          const replyTime = new Date();
+          const rTime = replyTime.getHours().toString().padStart(2, '0') + ':' + replyTime.getMinutes().toString().padStart(2, '0');
+          messages[currentChat].push({ text: reply, outgoing: false, time: rTime });
+          if (chat) { chat.lastMsg = reply; chat.time = rTime; }
+          renderMessages();
+          renderChatList();
+        }
+      }, 800 + Math.random() * 2000);
+    }
+    renderChatList();
+  </script>
+</body>
+          </html>
